@@ -10,8 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Point to the .env file in the same directory as settings.py
+load_dotenv()
+url = os.getenv('url')
+url_secret = os.getenv('url_secret')
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,32 +32,60 @@ SECRET_KEY = 'django-insecure-o+t=7^!hte2%tct$)1dk4d(3t8oht!vcie4miz!dt@6lsl82u&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '10.162.62.73', # <--- ADD THIS LINE
+    # Add your production domain names here when deploying
+]
 
 # Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.sessions',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'myapp'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+   
+   
+]
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' 
+ROOT_URLCONF = 'mytodo.urls'
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000", # Keep this for local development
+    "http://10.162.62.73:3000", # <--- ADD THIS LINE
+    # Add other origins if your React app is hosted elsewhere
 ]
 
-ROOT_URLCONF = 'mytodo.urls'
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'TOKEN_OBTAIN_PAIR_SERIALIZER':'myapp.verify.token'
+}
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -75,12 +110,21 @@ WSGI_APPLICATION = 'mytodo.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+           
     }
 }
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    # ... other hashers
+]
 
-
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'guptaashish2531@gmail.com'
+EMAIL_HOST_PASSWORD = 'asks opud fmtl tjvb'
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -121,3 +165,29 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1", # Use database 1 for sessions
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "COMPRESSOR": "django_redis.compressors.brotli.BrotliCompressor", # Optional: for compression
+            "IGNORE_EXCEPTIONS": True, # Optional: Don't break if Redis is down
+        },
+        "KEY_PREFIX": "my_app_sessions" # Optional: Prefix for session keys in Redis
+    }
+}
+
+# Tell Django to use the cache backend for sessions
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default" # This refers to the 'default' cache defined above
+
+# Optional: Set session cookie age (e.g., 2 weeks)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
+
+# Optional: Set session cookie to be secure (HTTPS only) in production
+# SESSION_COOKIE_SECURE = True
+
+# Optional: Set session cookie to be HTTPOnly (prevents client-side JS access)
+SESSION_COOKIE_HTTPONLY = True
